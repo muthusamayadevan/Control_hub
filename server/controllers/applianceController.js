@@ -130,14 +130,21 @@ export const toggleApplianceStatus = async (req, res) => {
 
     let alertTriggered = false;
 
-    // Whenever appliance is toggled to ON, execute checkAndSendAlert asynchronously
+    // Whenever appliance is toggled ON, check if it exceeds 1000W
     if (appliance.status === true) {
       const ratedPower = basePower;
       alertTriggered = ratedPower >= 1000;
 
-      const targetEmail = req.user?.email || req.user?.userEmail || req.body?.userEmail;
-      console.log('[DEBUG AUTH USER]', JSON.stringify(req.user));
-      console.log('[DEBUG TARGET EMAIL]', targetEmail);
+      const targetEmail =
+        req.user?.email ||
+        req.user?.userEmail ||
+        req.body?.userEmail ||
+        req.headers?.['x-user-email'] ||
+        req.headers?.['X-User-Email'] ||
+        process.env.ALERT_RECIPIENT_EMAIL ||
+        process.env.SMTP_USER;
+
+      console.log(`[Toggle] "${appliance.name}" (${ratedPower}W) toggled ON. AlertTriggered: ${alertTriggered}. Recipient: ${targetEmail}`);
 
       // Compute total load and dispatch email alert asynchronously (non-blocking)
       Appliance.find({ status: true })
@@ -158,10 +165,13 @@ export const toggleApplianceStatus = async (req, res) => {
         });
     }
 
+    const responseData = appliance.toObject ? appliance.toObject() : { ...appliance };
+    responseData.alertTriggered = alertTriggered;
+
     res.status(200).json({
       success: true,
       message: `Appliance is now ${appliance.status ? 'ON' : 'OFF'}`,
-      data: appliance,
+      data: responseData,
       alertTriggered,
     });
   } catch (error) {

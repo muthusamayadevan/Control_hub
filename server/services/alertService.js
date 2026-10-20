@@ -131,16 +131,18 @@ export async function checkAndSendAlert(appliance, totalLoad = 0, userEmail = nu
       );
     };
 
-    if (!isValidEmail(userEmail)) {
-      console.log('[AlertEngine] No authenticated user email found. Dispatch skipped.');
+    const envRecipient = process.env.ALERT_RECIPIENT_EMAIL?.trim() || process.env.SMTP_USER?.trim();
+    const recipientToUse = isValidEmail(userEmail) ? userEmail.trim() : envRecipient;
+
+    if (!isValidEmail(recipientToUse)) {
+      console.log('[AlertEngine] No valid recipient email found. Dispatch skipped.');
       return {
         triggered: false,
-        reason: 'No authenticated user email found. Dispatch skipped.',
+        reason: 'No valid recipient email found. Dispatch skipped.',
       };
     }
 
-    const recipientToUse = userEmail.trim();
-    console.log('[AlertEngine] Authenticated user email verified for alert dispatch:', recipientToUse);
+    console.log('[AlertEngine] Recipient email verified for alert dispatch:', recipientToUse);
 
     const transporter = await getTransporter();
     const senderEmail = process.env.SMTP_FROM?.trim() || `"ControlHub Safety Engine" <${process.env.SMTP_USER?.trim() || 'alerts@controlhub.io'}>`;

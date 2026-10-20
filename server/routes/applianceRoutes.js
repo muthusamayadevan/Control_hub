@@ -8,11 +8,11 @@ import {
   updateAppliance,
   deleteAppliance,
 } from '../controllers/applianceController.js';
-import { extractUser, protect } from '../middleware/authMiddleware.js';
+import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.use(extractUser);
+// Apply auth middleware to resolve user session/token
 router.use(protect);
 
 router.route('/')
@@ -24,6 +24,6 @@ router.route('/:id')
   .put(updateAppliance)
   .delete(deleteAppliance);
 
-router.patch('/:id/toggle', protect, toggleAppliance);
+router.patch('/:id/toggle', toggleAppliance);
 
 export default router;

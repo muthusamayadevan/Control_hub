@@ -24,13 +24,33 @@ connectDB().then(() => {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+// CORS & Preflight Middleware Configuration
+const allowedOrigins = [
+  'https://control-hub-ten.vercel.app',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+];
+
+const corsOptions = {
+  origin: allowedOrigins,
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-email', 'X-User-Email'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Email', 'x-user-email'],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-}));
+  optionsSuccessStatus: 200,
+};
+
+// Configure CORS at the very top of the Express middleware stack
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// Ensure OPTIONS preflight requests return HTTP 204 or HTTP 200 without blocking
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  next();
+});
+
 app.use(express.json());
 
 // Request logging middleware (dev)
@@ -53,12 +73,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'online',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-    service: 'ControlHub Backend API',
-  });
+  res.status(200).json({ status: 'ok', online: true });
 });
 
 // API Routes
@@ -90,3 +105,7 @@ app.listen(PORT, () => {
   console.log(`⚡ API Health: http://localhost:${PORT}/api/health`);
   console.log(`========================================`);
 });
+
+export { app };
+export default app;
+
