@@ -27,7 +27,9 @@ const PORT = process.env.PORT || 5000;
 // CORS & Preflight Middleware Configuration
 const allowedOrigins = [
   'https://control-hub-ten.vercel.app',
+  'https://control-hub-inky.vercel.app',
   'http://localhost:5173',
+  'http://localhost:3000',
   'http://127.0.0.1:5173',
 ];
 
@@ -35,7 +37,7 @@ const corsOptions = {
   origin: allowedOrigins,
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Email', 'x-user-email'],
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   optionsSuccessStatus: 200,
 };
 
