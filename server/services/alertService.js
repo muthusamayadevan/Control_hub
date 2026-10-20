@@ -23,34 +23,23 @@ export async function getTransporter() {
     return transporterInstance;
   }
 
-  const host = process.env.SMTP_HOST?.trim();
-  const port = process.env.SMTP_PORT?.trim() ? Number(process.env.SMTP_PORT.trim()) : 587;
-  const secure = process.env.SMTP_SECURE?.trim() === 'true';
+  const port = Number(process.env.SMTP_PORT) || 465;
+  const secure = port === 465;
   const user = process.env.SMTP_USER?.trim();
   const pass = process.env.SMTP_PASS?.replace(/\s+/g, '');
 
-  // 1. Real SMTP configuration if SMTP_USER and SMTP_PASS are provided in .env
+  // 1. Explicit Gmail SMTP configuration
   if (user && pass) {
-    const isGmail = user.includes('@gmail.com');
-    const transportConfig = isGmail
-      ? {
-          service: 'gmail',
-          auth: {
-            user: user,
-            pass: pass,
-          },
-        }
-      : {
-          host: host || 'smtp.gmail.com',
-          port: port || 587,
-          secure: secure,
-          auth: {
-            user: user,
-            pass: pass,
-          },
-        };
-    transporterInstance = nodemailer.createTransport(transportConfig);
-    console.log(`[AlertService] Configured real SMTP transport (${isGmail ? 'Gmail' : host || 'smtp.gmail.com'}) for ${user}`);
+    transporterInstance = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: port,
+      secure: secure,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+    console.log(`[AlertService] Configured Gmail SMTP transport (smtp.gmail.com:${port}, secure:${secure}) for ${user}`);
     return transporterInstance;
   }
 
@@ -238,15 +227,10 @@ export async function checkAndSendAlert(appliance, totalLoad = 0, userEmail = nu
     let info;
     try {
       info = await transporter.sendMail(mailOptions);
-      console.log(`[ALERT SUCCESS] Email delivered to ${mailOptions.to}`);
-    } catch (sendErr) {
-      console.error('[ALERT ERROR] Failed to send email:', sendErr.message);
-      if (sendErr.code === 'EAUTH') {
-        console.error('[AlertService] SMTP Authentication failure: Check SMTP_USER and SMTP_PASS credentials.');
-      } else if (['ECONNREFUSED', 'ETIMEDOUT', 'ESOCKET'].includes(sendErr.code)) {
-        console.error(`[AlertService] SMTP Connection failure (${sendErr.code}): Unable to connect to host/port.`);
-      }
-      throw sendErr;
+      console.log('✅ SMTP Dispatch Success:', info.messageId, info.response);
+    } catch (error) {
+      console.error('❌ SMTP Dispatch Error:', error);
+      throw error;
     }
 
     const previewUrl = nodemailer.getTestMessageUrl(info) || null;
