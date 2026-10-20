@@ -98,17 +98,15 @@ export default function Sidebar({
             className="status-dot-pulse"
             style={{
               backgroundColor: isOnline ? '#10B981' : '#F59E0B',
-              boxShadow: isOnline ? '0 0 12px #10B981' : '0 0 12px #F59E0B',
             }}
           />
           <span
             style={{
               fontSize: '0.65rem',
               fontWeight: 800,
-              color: 'rgba(255, 255, 255, 0.85)',
+              color: '#334155',
               letterSpacing: '0.05em',
               textTransform: 'uppercase',
-              textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)',
             }}
           >
             {isOnline ? 'LIVE' : 'IDLE'}
@@ -120,12 +118,12 @@ export default function Sidebar({
           type="button"
           className="frosted-icon-btn"
           style={{
-            width: 42,
-            height: 42,
-            borderRadius: '14px',
-            backgroundColor: 'rgba(255, 255, 255, 0.15)',
-            borderColor: 'rgba(255, 255, 255, 0.25)',
-            color: '#ffffff',
+            width: 40,
+            height: 40,
+            borderRadius: '8px',
+            backgroundColor: '#F8FAFC',
+            borderColor: '#E2E8F0',
+            color: '#334155',
             cursor: 'pointer',
           }}
           title={`${unreadAlertsCount} System Notifications`}

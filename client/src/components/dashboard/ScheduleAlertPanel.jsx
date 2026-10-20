@@ -69,7 +69,7 @@ export default function ScheduleAlertPanel() {
   };
 
   return (
-    <div className="glass-card" style={{ padding: '1.25rem' }}>
+    <div className="card" style={{ padding: '1.25rem' }}>
       {/* Panel Header with Navigation Tabs */}
       <div
         style={{
@@ -78,12 +78,12 @@ export default function ScheduleAlertPanel() {
           justifyContent: 'space-between',
           marginBottom: '1rem',
           paddingBottom: '0.65rem',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
+          borderBottom: '1px solid #E2E8F0',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Clock size={17} color="#2563EB" strokeWidth={2.6} />
-          <h3 style={{ fontSize: '0.975rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.015em' }}>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.015em' }}>
             Hub Automation
           </h3>
         </div>
@@ -92,25 +92,24 @@ export default function ScheduleAlertPanel() {
         <div
           style={{
             display: 'flex',
-            background: 'rgba(255, 255, 255, 0.65)',
-            padding: '3px',
-            borderRadius: '9999px',
-            border: '1px solid rgba(255, 255, 255, 0.8)',
+            background: '#F1F5F9',
+            padding: '2px',
+            borderRadius: '6px',
+            border: '1px solid #E2E8F0',
           }}
         >
           <button
             type="button"
             onClick={() => setActiveTab('schedules')}
             style={{
-              padding: '0.25rem 0.75rem',
-              borderRadius: '9999px',
-              border: 'none',
+              padding: '0.25rem 0.65rem',
+              borderRadius: '4px',
+              border: activeTab === 'schedules' ? '1px solid #E2E8F0' : '1px solid transparent',
               fontSize: '0.75rem',
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
               background: activeTab === 'schedules' ? '#FFFFFF' : 'transparent',
-              color: '#0F172A',
-              boxShadow: activeTab === 'schedules' ? '0 2px 8px rgba(0, 0, 0, 0.12)' : 'none',
+              color: activeTab === 'schedules' ? '#0F172A' : '#64748B',
               transition: 'all 0.15s ease',
             }}
           >
@@ -120,15 +119,14 @@ export default function ScheduleAlertPanel() {
             type="button"
             onClick={() => setActiveTab('activity')}
             style={{
-              padding: '0.25rem 0.75rem',
-              borderRadius: '9999px',
-              border: 'none',
+              padding: '0.25rem 0.65rem',
+              borderRadius: '4px',
+              border: activeTab === 'activity' ? '1px solid #E2E8F0' : '1px solid transparent',
               fontSize: '0.75rem',
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
               background: activeTab === 'activity' ? '#FFFFFF' : 'transparent',
-              color: '#0F172A',
-              boxShadow: activeTab === 'activity' ? '0 2px 8px rgba(0, 0, 0, 0.12)' : 'none',
+              color: activeTab === 'activity' ? '#0F172A' : '#64748B',
               transition: 'all 0.15s ease',
             }}
           >
@@ -147,32 +145,32 @@ export default function ScheduleAlertPanel() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <div
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: '10px',
-                      background: schedule.enabled ? 'rgba(37, 99, 235, 0.2)' : 'rgba(255, 255, 255, 0.65)',
-                      color: schedule.enabled ? '#1D4ED8' : '#475569',
+                      width: 34,
+                      height: 34,
+                      borderRadius: '6px',
+                      background: schedule.enabled ? '#EFF6FF' : '#F1F5F9',
+                      color: schedule.enabled ? '#2563EB' : '#64748B',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      border: schedule.enabled ? '1px solid rgba(37, 99, 235, 0.35)' : '1px solid rgba(255, 255, 255, 0.7)',
+                      border: schedule.enabled ? '1px solid #BFDBFE' : '1px solid #E2E8F0',
                     }}
                   >
-                    <Icon size={18} strokeWidth={2.4} />
+                    <Icon size={17} strokeWidth={2.4} />
                   </div>
                   <div>
                     <h4
                       style={{
                         fontSize: '0.85rem',
-                        fontWeight: 800,
+                        fontWeight: 700,
                         color: '#0F172A',
                         lineHeight: 1.25,
                       }}
                     >
                       {schedule.title}
                     </h4>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1E293B' }}>
-                      {schedule.room} &bull; <strong style={{ color: '#1D4ED8' }}>{schedule.time}</strong>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748B' }}>
+                      {schedule.room} &bull; <strong style={{ color: '#2563EB' }}>{schedule.time}</strong>
                     </span>
                   </div>
                 </div>
@@ -208,12 +206,12 @@ export default function ScheduleAlertPanel() {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0F172A' }}>
+                  <span style={{ fontSize: '0.825rem', fontWeight: 700, color: '#0F172A' }}>
                     {log.title}
                   </span>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#334155' }}>{log.time}</span>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 500, color: '#64748B' }}>{log.time}</span>
                 </div>
-                <p style={{ fontSize: '0.775rem', fontWeight: 500, color: '#1E293B', marginTop: '0.2rem', lineHeight: 1.35 }}>
+                <p style={{ fontSize: '0.775rem', fontWeight: 500, color: '#334155', marginTop: '0.2rem', lineHeight: 1.35 }}>
                   {log.detail}
                 </p>
               </div>

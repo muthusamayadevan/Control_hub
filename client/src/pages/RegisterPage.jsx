@@ -8,7 +8,9 @@ export default function RegisterPage() {
 
   const handleRegister = (data) => {
     console.log('User registration:', data);
-    navigate('/login');
+    navigate('/login', {
+      state: { message: 'Account registered successfully! Please sign in with your credentials.' },
+    });
   };
 
   return (

@@ -1,4 +1,5 @@
 import Appliance from '../models/Appliance.js';
+import { checkAndSendAlert } from '../services/alertService.js';
 
 // @desc    Get all appliances
 // @route   GET /api/appliances
@@ -63,7 +64,7 @@ export const getApplianceById = async (req, res) => {
 // @access  Public
 export const createAppliance = async (req, res) => {
   try {
-    const { name, room, type, status, powerUsage } = req.body;
+    const { name, room, type, status, powerUsage, ratedPower } = req.body;
 
     if (!name) {
       return res.status(400).json({
@@ -72,12 +73,17 @@ export const createAppliance = async (req, res) => {
       });
     }
 
+    const basePower = powerUsage !== undefined ? Number(powerUsage) : 50;
+    const finalRatedPower = ratedPower !== undefined ? Number(ratedPower) : basePower;
+
     const appliance = await Appliance.create({
       name,
       room: room || 'Living Room',
       type: type || 'light',
       status: status || false,
-      powerUsage: powerUsage !== undefined ? Number(powerUsage) : 50,
+      powerUsage: basePower,
+      ratedPower: finalRatedPower,
+      currentPower: status ? finalRatedPower : 0,
     });
 
     res.status(201).json({
@@ -113,12 +119,50 @@ export const toggleApplianceStatus = async (req, res) => {
       appliance.status = !appliance.status;
     }
 
+    const basePower = Number(appliance.ratedPower || appliance.powerUsage || 50);
+    if (appliance.status) {
+      appliance.currentPower = basePower;
+    } else {
+      appliance.currentPower = 0;
+    }
+
     await appliance.save();
+
+    let alertTriggered = false;
+
+    // Whenever appliance is toggled to ON, execute checkAndSendAlert asynchronously
+    if (appliance.status === true) {
+      const ratedPower = basePower;
+      alertTriggered = ratedPower >= 1000;
+
+      const targetEmail = req.user?.email || req.user?.userEmail || req.body?.userEmail;
+      console.log('[DEBUG AUTH USER]', JSON.stringify(req.user));
+      console.log('[DEBUG TARGET EMAIL]', targetEmail);
+
+      // Compute total load and dispatch email alert asynchronously (non-blocking)
+      Appliance.find({ status: true })
+        .then((activeAppliances) => {
+          const totalLoad = activeAppliances.reduce(
+            (sum, a) => sum + (Number(a.currentPower || a.ratedPower || a.powerUsage) || 0),
+            0
+          );
+          checkAndSendAlert(appliance, totalLoad, targetEmail).catch((err) => {
+            console.error('[AlertEngine] Error:', err.message);
+          });
+        })
+        .catch((err) => {
+          console.error('[AlertEngine] Error fetching active appliances for total load:', err.message);
+          checkAndSendAlert(appliance, ratedPower, targetEmail).catch((err) => {
+            console.error('[AlertEngine] Error:', err.message);
+          });
+        });
+    }
 
     res.status(200).json({
       success: true,
       message: `Appliance is now ${appliance.status ? 'ON' : 'OFF'}`,
       data: appliance,
+      alertTriggered,
     });
   } catch (error) {
     res.status(500).json({
@@ -187,3 +231,6 @@ export const deleteAppliance = async (req, res) => {
     });
   }
 };
+
+// Alias for toggleAppliance
+export const toggleAppliance = toggleApplianceStatus;

@@ -54,7 +54,7 @@ export default function PowerTelemetryGauge({
   const StatusIcon = statusInfo.icon;
 
   return (
-    <div className="glass-card" style={{ padding: '1.5rem 1.25rem' }}>
+    <div className="card" style={{ padding: '1.25rem' }}>
       {/* Title & Live Status */}
       <div
         style={{
@@ -67,24 +67,24 @@ export default function PowerTelemetryGauge({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
           <div
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: '11px',
-              backgroundColor: 'rgba(37, 99, 235, 0.2)',
-              border: '1px solid rgba(37, 99, 235, 0.4)',
-              color: '#1D4ED8',
+              width: 34,
+              height: 34,
+              borderRadius: '6px',
+              backgroundColor: '#EFF6FF',
+              border: '1px solid #BFDBFE',
+              color: '#2563EB',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Zap size={18} strokeWidth={2.6} />
+            <Zap size={17} strokeWidth={2.6} />
           </div>
           <div>
-            <h3 style={{ fontSize: '0.975rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.015em' }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.015em' }}>
               Power Telemetry
             </h3>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1E293B' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748B' }}>
               Live grid load dial
             </span>
           </div>
@@ -93,8 +93,8 @@ export default function PowerTelemetryGauge({
         <span
           style={{
             fontSize: '0.725rem',
-            fontWeight: 800,
-            padding: '0.25rem 0.65rem',
+            fontWeight: 700,
+            padding: '0.2rem 0.6rem',
             borderRadius: '9999px',
             background: statusInfo.bg,
             border: `1px solid ${statusInfo.color}`,
@@ -102,7 +102,6 @@ export default function PowerTelemetryGauge({
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.35rem',
-            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
           }}
         >
           <StatusIcon size={13} strokeWidth={2.6} />
@@ -155,7 +154,7 @@ export default function PowerTelemetryGauge({
             style={{
               fontSize: '0.925rem',
               fontWeight: 800,
-              color: '#1D4ED8',
+              color: '#2563EB',
               marginTop: '0.2rem',
             }}
           >
@@ -172,18 +171,18 @@ export default function PowerTelemetryGauge({
           gap: '0.75rem',
           marginTop: '1rem',
           paddingTop: '0.85rem',
-          borderTop: '1px solid rgba(255, 255, 255, 0.45)',
+          borderTop: '1px solid #E2E8F0',
         }}
       >
         <div
           style={{
-            background: 'rgba(255, 255, 255, 0.55)',
-            borderRadius: '12px',
+            background: '#F8FAFC',
+            borderRadius: '6px',
             padding: '0.65rem 0.85rem',
-            border: '1px solid rgba(255, 255, 255, 0.65)',
+            border: '1px solid #E2E8F0',
           }}
         >
-          <span style={{ fontSize: '0.75rem', color: '#0F172A', fontWeight: 700, display: 'block' }}>
+          <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, display: 'block' }}>
             Grid Capacity
           </span>
           <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
@@ -193,13 +192,13 @@ export default function PowerTelemetryGauge({
 
         <div
           style={{
-            background: 'rgba(255, 255, 255, 0.55)',
-            borderRadius: '12px',
+            background: '#F8FAFC',
+            borderRadius: '6px',
             padding: '0.65rem 0.85rem',
-            border: '1px solid rgba(255, 255, 255, 0.65)',
+            border: '1px solid #E2E8F0',
           }}
         >
-          <span style={{ fontSize: '0.75rem', color: '#0F172A', fontWeight: 700, display: 'block' }}>
+          <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, display: 'block' }}>
             Active Loads
           </span>
           <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
@@ -208,14 +207,14 @@ export default function PowerTelemetryGauge({
         </div>
       </div>
 
-      {/* Footer explanation with Dark Slate */}
+      {/* Footer explanation */}
       <p
         style={{
           fontSize: '0.775rem',
-          color: '#1E293B',
+          color: '#64748B',
           textAlign: 'center',
           marginTop: '0.85rem',
-          fontWeight: 600,
+          fontWeight: 500,
           lineHeight: 1.4,
         }}
       >

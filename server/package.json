@@ -9,14 +9,21 @@
     "dev": "nodemon server.js",
     "seed": "node seeder/seed.js"
   },
-  "keywords": ["smart-home", "iot", "mern", "automation", "express"],
+  "keywords": [
+    "smart-home",
+    "iot",
+    "mern",
+    "automation",
+    "express"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "mongoose": "^8.9.5"
+    "mongoose": "^8.9.5",
+    "nodemailer": "^10.0.10"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

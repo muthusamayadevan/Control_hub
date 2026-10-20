@@ -1,11 +1,38 @@
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import Navbar from './components/layout/Navbar';
+import Navbar from './components/Navbar';
 import Footer from './components/layout/Footer';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+
+/**
+ * ProtectedRoute component wrapper.
+ * Restricts access to authenticated users. If an unauthenticated guest attempts
+ * to access a protected route, they are automatically redirected to /login.
+ */
+export function ProtectedRoute({ children }) {
+  const location = useLocation();
+  const token = localStorage.getItem('token');
+  const user = localStorage.getItem('user');
+  const isAuthenticated = !!(token || user);
+
+  if (!isAuthenticated) {
+    return (
+      <Navigate
+        to="/login"
+        state={{
+          from: location.pathname,
+          message: 'Please sign in to access the Live Dashboard.',
+        }}
+        replace
+      />
+    );
+  }
+
+  return children;
+}
 
 export default function App() {
   const location = useLocation();
@@ -22,7 +49,14 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

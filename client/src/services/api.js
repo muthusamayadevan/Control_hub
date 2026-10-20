@@ -1,4 +1,33 @@
+import axios from 'axios';
+
 const API_BASE_URL = 'http://localhost:5000/api';
+
+// Create configured Axios instance
+export const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 5000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to automatically attach JWT authorization token to all requests
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user?.email) {
+        config.headers['X-User-Email'] = user.email;
+      }
+    } catch {}
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 export const INITIAL_DUMMY_DEVICES = [
   {
@@ -8,6 +37,8 @@ export const INITIAL_DUMMY_DEVICES = [
     type: 'ac',
     status: true,
     powerUsage: 1450,
+    ratedPower: 1450,
+    currentPower: 1450,
     createdAt: new Date().toISOString(),
   },
   {
@@ -17,6 +48,8 @@ export const INITIAL_DUMMY_DEVICES = [
     type: 'light',
     status: true,
     powerUsage: 25,
+    ratedPower: 25,
+    currentPower: 25,
     createdAt: new Date().toISOString(),
   },
   {
@@ -26,6 +59,8 @@ export const INITIAL_DUMMY_DEVICES = [
     type: 'geyser',
     status: false,
     powerUsage: 2000,
+    ratedPower: 2000,
+    currentPower: 0,
     createdAt: new Date().toISOString(),
   },
   {
@@ -35,6 +70,8 @@ export const INITIAL_DUMMY_DEVICES = [
     type: 'fan',
     status: true,
     powerUsage: 70,
+    ratedPower: 70,
+    currentPower: 70,
     createdAt: new Date().toISOString(),
   },
   {
@@ -44,6 +81,8 @@ export const INITIAL_DUMMY_DEVICES = [
     type: 'tv',
     status: false,
     powerUsage: 120,
+    ratedPower: 120,
+    currentPower: 0,
     createdAt: new Date().toISOString(),
   },
   {
@@ -53,6 +92,8 @@ export const INITIAL_DUMMY_DEVICES = [
     type: 'light',
     status: true,
     powerUsage: 15,
+    ratedPower: 15,
+    currentPower: 15,
     createdAt: new Date().toISOString(),
   },
 ];
@@ -77,28 +118,20 @@ const saveLocalData = (data) => {
 
 export const checkBackendStatus = async () => {
   try {
-    const res = await fetch(`${API_BASE_URL}/health`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(2000),
-    });
-    if (res.ok) {
-      return { online: true };
-    }
-    return { online: false };
+    const res = await api.get('/health', { timeout: 2000 });
+    return { online: res.status === 200 };
   } catch (error) {
     return { online: false };
   }
 };
 
+export const fetchHealthStatus = checkBackendStatus;
+
 export const fetchAppliances = async () => {
   try {
-    const res = await fetch(`${API_BASE_URL}/appliances`, {
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    const result = await res.json();
-    if (result.success && Array.isArray(result.data)) {
+    const res = await api.get('/appliances');
+    const result = res.data;
+    if (result && result.success && Array.isArray(result.data)) {
       saveLocalData(result.data);
       return { data: result.data, isLive: true };
     }
@@ -112,15 +145,18 @@ export const fetchAppliances = async () => {
 
 export const toggleApplianceStatus = async (id, currentStatus) => {
   try {
-    const res = await fetch(`${API_BASE_URL}/appliances/${id}/toggle`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: !currentStatus }),
-      signal: AbortSignal.timeout(3000),
+    let userEmail = null;
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      userEmail = user?.email;
+    } catch {}
+
+    const res = await api.patch(`/appliances/${id}/toggle`, {
+      status: !currentStatus,
+      userEmail,
     });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    const result = await res.json();
-    return { data: result.data, isLive: true };
+    const result = res.data;
+    return { data: result.data, isLive: true, alertTriggered: result.alertTriggered };
   } catch (err) {
     // Fallback to updating local storage
     const local = getLocalData();
@@ -129,20 +165,15 @@ export const toggleApplianceStatus = async (id, currentStatus) => {
     );
     saveLocalData(updated);
     const item = updated.find((d) => d._id === id);
-    return { data: item, isLive: false };
+    const isHighDraw = item && Number(item.powerUsage || 0) >= 1000;
+    return { data: item, isLive: false, alertTriggered: !currentStatus && isHighDraw };
   }
 };
 
 export const createAppliance = async (applianceData) => {
   try {
-    const res = await fetch(`${API_BASE_URL}/appliances`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(applianceData),
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    const result = await res.json();
+    const res = await api.post('/appliances', applianceData);
+    const result = res.data;
     return { data: result.data, isLive: true };
   } catch (err) {
     const local = getLocalData();
@@ -159,11 +190,7 @@ export const createAppliance = async (applianceData) => {
 
 export const deleteAppliance = async (id) => {
   try {
-    const res = await fetch(`${API_BASE_URL}/appliances/${id}`, {
-      method: 'DELETE',
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    await api.delete(`/appliances/${id}`);
     return { success: true, isLive: true };
   } catch (err) {
     const local = getLocalData();
@@ -172,3 +199,5 @@ export const deleteAppliance = async (id) => {
     return { success: true, isLive: false };
   }
 };
+
+export default api;

@@ -28,7 +28,7 @@ export default function ApplianceCard({
 
   if (!appliance) return null;
 
-  const { _id, name, room, type, status, powerUsage } = appliance;
+  const { _id, name, room, type, status, powerUsage, currentPower, ratedPower } = appliance;
 
   // Resolve Category Icon
   const getCategoryIcon = (categoryType) => {
@@ -85,18 +85,21 @@ export default function ApplianceCard({
     }
   };
 
-  const wattage = Number(powerUsage) || 0;
+  const ratedWattage = Number(appliance?.ratedPower ?? appliance?.powerUsage ?? 0);
+  const activePower = status
+    ? Number(appliance?.currentPower ?? appliance?.ratedPower ?? appliance?.powerUsage ?? 0)
+    : 0;
   // Calculate dynamic wattage when active based on intensity
   const dynamicWattage = status
-    ? Math.round(wattage * (0.3 + 0.7 * (intensity / 100)))
+    ? Math.round(activePower * (0.3 + 0.7 * (intensity / 100)))
     : 0;
 
   // Load badge classification with high-contrast colors
   const getLoadBadge = () => {
-    if (wattage >= 1000) {
+    if (ratedWattage >= 1000) {
       return { text: 'High Draw', color: '#9A3412', bg: 'rgba(254, 215, 170, 0.85)', border: '#FDBA74' };
     }
-    if (wattage >= 200) {
+    if (ratedWattage >= 200) {
       return { text: 'Moderate Draw', color: '#1E40AF', bg: 'rgba(191, 219, 254, 0.85)', border: '#93C5FD' };
     }
     return { text: 'Eco / Low Draw', color: '#065F46', bg: 'rgba(167, 243, 208, 0.85)', border: '#6EE7B7' };
@@ -117,7 +120,7 @@ export default function ApplianceCard({
 
   return (
     <div
-      className={`glass-card ${status ? 'active-device' : ''} ${menuOpen ? 'menu-open' : ''}`}
+      className={`card appliance-card ${status ? 'active-device' : ''} ${menuOpen ? 'menu-open' : ''}`}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -125,6 +128,8 @@ export default function ApplianceCard({
         position: 'relative',
         zIndex: menuOpen ? 50 : 10,
         minHeight: '235px',
+        backgroundColor: '#FFFFFF',
+        borderColor: status ? '#A7F3D0' : '#E2E8F0',
       }}
     >
       {/* Top Header Row: Icon + Device Title & Type + Room Badge */}
@@ -133,41 +138,41 @@ export default function ApplianceCard({
           style={{
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             gap: '0.75rem',
+            padding: '0.65rem 0.75rem',
+            borderRadius: '6px',
+            background: status ? '#ECFDF5' : '#F8FAFC',
+            border: status ? '1px solid #A7F3D0' : '1px solid #E2E8F0',
             marginBottom: '0.85rem',
+            transition: 'all 0.15s ease',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-            {/* Category Icon with glowing frosted container */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {/* Category Icon */}
             <div
               style={{
-                width: 42,
-                height: 42,
-                borderRadius: '14px',
-                background: status
-                  ? 'linear-gradient(135deg, rgba(37, 99, 235, 0.25), rgba(96, 165, 250, 0.2))'
-                  : 'rgba(255, 255, 255, 0.65)',
-                color: status ? '#1D4ED8' : '#334155',
+                width: 36,
+                height: 36,
+                borderRadius: '6px',
+                background: status ? '#D1FAE5' : '#F1F5F9',
+                color: status ? '#059669' : '#64748B',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: status
-                  ? '1px solid rgba(96, 165, 250, 0.7)'
-                  : '1px solid rgba(255, 255, 255, 0.8)',
-                boxShadow: status ? '0 0 16px rgba(37, 99, 235, 0.25)' : 'none',
-                transition: 'all 0.25s ease',
+                border: status ? '1px solid #A7F3D0' : '1px solid #E2E8F0',
+                transition: 'all 0.15s ease',
               }}
             >
-              <IconComponent size={20} strokeWidth={2.4} />
+              <IconComponent size={18} strokeWidth={2.4} />
             </div>
 
             <div>
               <h3
                 style={{
-                  fontSize: '1rem',
+                  fontSize: '0.95rem',
                   fontWeight: 800,
-                  color: '#0F172A',
+                  color: status ? '#0F172A' : '#64748B',
                   lineHeight: 1.25,
                   letterSpacing: '-0.02em',
                 }}
@@ -178,7 +183,7 @@ export default function ApplianceCard({
                 style={{
                   fontSize: '0.75rem',
                   fontWeight: 600,
-                  color: '#334155',
+                  color: status ? '#059669' : '#64748B',
                   textTransform: 'capitalize',
                 }}
               >
@@ -187,18 +192,18 @@ export default function ApplianceCard({
             </div>
           </div>
 
-          {/* Room Badge with High Contrast */}
+          {/* Room Badge: Green badge (#059669) when ON, neutral gray when OFF */}
           <span
             style={{
               fontSize: '0.725rem',
               fontWeight: 700,
-              padding: '0.25rem 0.65rem',
+              padding: '0.2rem 0.6rem',
               borderRadius: '9999px',
-              background: 'rgba(255, 255, 255, 0.85)',
-              border: '1px solid rgba(255, 255, 255, 0.95)',
-              color: '#0F172A',
+              background: status ? '#FFFFFF' : '#F1F5F9',
+              border: status ? '1px solid #A7F3D0' : '1px solid #E2E8F0',
+              color: status ? '#059669' : '#64748B',
               whiteSpace: 'nowrap',
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
             }}
           >
             {room || 'Living Room'}
@@ -208,10 +213,10 @@ export default function ApplianceCard({
         {/* Wattage & Power Load Readout */}
         <div
           style={{
-            background: 'rgba(255, 255, 255, 0.55)',
-            borderRadius: '12px',
+            background: '#F8FAFC',
+            borderRadius: '6px',
             padding: '0.75rem 0.85rem',
-            border: '1px solid rgba(255, 255, 255, 0.65)',
+            border: '1px solid #E2E8F0',
             marginBottom: '0.75rem',
           }}
         >
@@ -223,7 +228,7 @@ export default function ApplianceCard({
               marginBottom: '0.35rem',
             }}
           >
-            <span style={{ fontSize: '0.775rem', color: '#0F172A', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.75rem', color: status ? '#0F172A' : '#64748B', fontWeight: 600 }}>
               Rated Power
             </span>
             <span
@@ -231,10 +236,10 @@ export default function ApplianceCard({
                 fontSize: '0.7rem',
                 fontWeight: 700,
                 padding: '0.15rem 0.55rem',
-                borderRadius: '6px',
-                color: loadBadge.color,
-                background: loadBadge.bg,
-                border: `1px solid ${loadBadge.border}`,
+                borderRadius: '4px',
+                color: status ? loadBadge.color : '#64748B',
+                background: status ? loadBadge.bg : '#F1F5F9',
+                border: status ? `1px solid ${loadBadge.border}` : '1px solid #E2E8F0',
               }}
             >
               {loadBadge.text}
@@ -246,13 +251,13 @@ export default function ApplianceCard({
               style={{
                 fontSize: '1.35rem',
                 fontWeight: 800,
-                color: '#0F172A',
+                color: status ? '#0F172A' : '#64748B',
                 letterSpacing: '-0.02em',
               }}
             >
-              {status ? dynamicWattage : wattage}
+              {status ? dynamicWattage : ratedWattage}
             </span>
-            <span style={{ fontSize: '0.825rem', color: '#1E293B', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.825rem', color: status ? '#334155' : '#64748B', fontWeight: 600 }}>
               Watts
             </span>
 
@@ -261,8 +266,8 @@ export default function ApplianceCard({
                 style={{
                   marginLeft: 'auto',
                   fontSize: '0.75rem',
-                  color: '#047857',
-                  fontWeight: 800,
+                  color: '#059669',
+                  fontWeight: 700,
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.25rem',
@@ -274,14 +279,14 @@ export default function ApplianceCard({
           </div>
         </div>
 
-        {/* Power Intensity Slider (Apple visionOS Style) */}
+        {/* Power Intensity Slider */}
         <div className="vision-slider-wrapper">
           <div className="vision-slider-header">
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#0F172A', fontWeight: 700 }}>
-              <Sliders size={13} color="#0F172A" />
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: status ? '#0F172A' : '#64748B', fontWeight: 600 }}>
+              <Sliders size={13} color={status ? '#0F172A' : '#64748B'} />
               {getSliderLabel()}
             </span>
-            <span style={{ color: status ? '#1D4ED8' : '#334155', fontWeight: 800 }}>
+            <span style={{ color: status ? '#2563EB' : '#64748B', fontWeight: 700 }}>
               {intensity}%
             </span>
           </div>
@@ -293,7 +298,7 @@ export default function ApplianceCard({
             onChange={handleSliderChange}
             className="vision-slider"
             style={{
-              background: `linear-gradient(to right, #2563EB 0%, #2563EB ${intensity}%, rgba(148, 163, 184, 0.5) ${intensity}%, rgba(148, 163, 184, 0.5) 100%)`,
+              background: `linear-gradient(to right, #2563EB 0%, #2563EB ${intensity}%, #E2E8F0 ${intensity}%, #E2E8F0 100%)`,
             }}
           />
         </div>
@@ -306,47 +311,53 @@ export default function ApplianceCard({
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingTop: '0.85rem',
-          borderTop: '1px solid rgba(255, 255, 255, 0.45)',
+          borderTop: '1px solid #E2E8F0',
           marginTop: '0.85rem',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Apple visionOS Tactical Toggle Switch */}
+          {/* Active Blue Toggle Switch (#2563EB) */}
           <label
             className="ios-switch"
             title={status ? 'Turn OFF device' : 'Turn ON device'}
+            onClick={(e) => e.stopPropagation()}
           >
             <input
               type="checkbox"
               checked={Boolean(status)}
-              onChange={() => onToggle && onToggle(_id, status)}
+              onChange={(e) => {
+                e.stopPropagation();
+                if (onToggle) {
+                  onToggle(appliance._id || appliance.id);
+                }
+              }}
             />
             <span className="ios-switch-slider" />
           </label>
 
-          {/* Status Label with Crisp Text Contrast */}
+          {/* Status Label */}
           <span
             style={{
               fontSize: '0.75rem',
               fontWeight: 800,
               letterSpacing: '0.05em',
-              color: status ? '#047857' : '#334155',
+              color: status ? '#059669' : '#64748B',
             }}
           >
             {status ? 'ONLINE' : 'STANDBY'}
           </span>
         </div>
 
-        {/* Secondary Kebab Action Menu with Z-Index 1000 Fix */}
+        {/* Secondary Kebab Action Menu */}
         <div className="kebab-menu-wrapper" ref={menuRef}>
           <button
             type="button"
             className="frosted-icon-btn"
-            style={{ width: 34, height: 34, borderRadius: '10px' }}
+            style={{ width: 32, height: 32, borderRadius: '6px' }}
             title="Device actions"
             onClick={() => setMenuOpen(!menuOpen)}
           >
-            <MoreVertical size={16} />
+            <MoreVertical size={15} color={status ? '#0F172A' : '#64748B'} />
           </button>
 
           {menuOpen && (

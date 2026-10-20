@@ -68,6 +68,10 @@ export const loginUser = async (req, res, next) => {
       });
     }
 
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64');
+    const payload = Buffer.from(JSON.stringify({ id: user._id, email: user.email, name: user.name })).toString('base64');
+    const jwtToken = `${header}.${payload}.signature`;
+
     res.status(200).json({
       success: true,
       data: {
@@ -75,8 +79,9 @@ export const loginUser = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        token: 'sample-jwt-token-placeholder',
+        token: jwtToken,
       },
+      token: jwtToken,
     });
   } catch (error) {
     next(error);

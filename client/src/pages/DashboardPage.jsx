@@ -7,8 +7,8 @@ import PowerTelemetryGauge from '../components/dashboard/PowerTelemetryGauge';
 import ScheduleAlertPanel from '../components/dashboard/ScheduleAlertPanel';
 import AddDeviceModal from '../components/dashboard/AddDeviceModal';
 import SettingsModal from '../components/dashboard/SettingsModal';
-import { SlidersHorizontal, Plus, RefreshCw, Zap, Clock } from 'lucide-react';
-import {
+import { SlidersHorizontal, Plus, RefreshCw, Zap, ShieldAlert, MailCheck, X, AlertTriangle } from 'lucide-react';
+import api, {
   fetchAppliances,
   toggleApplianceStatus,
   createAppliance,
@@ -27,12 +27,20 @@ export default function DashboardPage() {
   const [isAlertsOpen, setIsAlertsOpen] = useState(false);
   const [isBackendOnline, setIsBackendOnline] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
+  const [proactiveAlert, setProactiveAlert] = useState(null);
+  const [errorToast, setErrorToast] = useState(null);
+
+  const alertTimeoutRef = useRef(null);
+  const errorToastTimeoutRef = useRef(null);
+  const isTogglingRef = useRef(false);
+  const pausePollingUntilRef = useRef(0);
 
   const schedulerRef = useRef(null);
   const telemetryRef = useRef(null);
   const devicesRef = useRef(null);
 
-  // Load telemetry data from API or localStorage
+  // Load telemetry data from API or localStorage (initial load with spinner toggle)
   const loadData = async () => {
     setIsLoading(true);
     try {
@@ -41,7 +49,9 @@ export default function DashboardPage() {
 
       const result = await fetchAppliances();
       if (result.data && result.data.length > 0) {
-        setAppliances(result.data);
+        if (!isTogglingRef.current && Date.now() >= pausePollingUntilRef.current) {
+          setAppliances(result.data);
+        }
       }
     } catch (err) {
       console.error('Failed to load telemetry data:', err);
@@ -50,8 +60,41 @@ export default function DashboardPage() {
     }
   };
 
+  // Background polling for real-time telemetry updates without state overwrites during toggles
+  const pollTelemetryData = async () => {
+    // State guard: DO NOT poll or overwrite state while a toggle request is pending or during polling pause window
+    if (isTogglingRef.current || Date.now() < pausePollingUntilRef.current) {
+      return;
+    }
+    try {
+      const health = await checkBackendStatus();
+      setIsBackendOnline(Boolean(health?.online));
+
+      if (isTogglingRef.current || Date.now() < pausePollingUntilRef.current) {
+        return;
+      }
+
+      const result = await fetchAppliances();
+      if (result && Array.isArray(result.data)) {
+        if (isTogglingRef.current || Date.now() < pausePollingUntilRef.current) {
+          return;
+        }
+        setAppliances(result.data);
+      }
+    } catch (err) {
+      console.error('[TelemetryPolling] Graceful fallback during telemetry poll:', err?.message || err);
+    }
+  };
+
   useEffect(() => {
     loadData();
+
+    // Set up lightweight real-time polling interval (every 4 seconds)
+    const pollInterval = setInterval(() => {
+      pollTelemetryData();
+    }, 4000);
+
+    return () => clearInterval(pollInterval);
   }, []);
 
   // Listen for global navbar search or add events if triggered elsewhere
@@ -98,16 +141,18 @@ export default function DashboardPage() {
     }
   };
 
-  // Compute metrics
+  // Compute metrics with bulletproof telemetry safety
   const totalDevices = appliances.length;
-  const activeDevices = appliances.filter((a) => a.status).length;
-  const totalPower = appliances
-    .filter((a) => a.status)
-    .reduce((sum, a) => {
-      const wattage = Number(a.powerUsage) || 0;
-      const intensityFactor = a.intensity !== undefined ? (0.3 + 0.7 * (a.intensity / 100)) : 1;
-      return sum + Math.round(wattage * intensityFactor);
-    }, 0);
+  const activeDevices = appliances.filter((a) => a?.status).length;
+  const totalPower = appliances.reduce((sum, appliance) => {
+    if (!appliance || !appliance.status) return sum;
+    const activePower = appliance.status
+      ? Number(appliance.currentPower ?? appliance.ratedPower ?? appliance.powerUsage ?? 0)
+      : 0;
+    const intensityFactor = appliance.intensity !== undefined ? (0.3 + 0.7 * (appliance.intensity / 100)) : 1;
+    const safeWattage = isNaN(activePower) ? 0 : activePower;
+    return sum + Math.round(safeWattage * intensityFactor);
+  }, 0);
 
   // Multi-tier filtering: Room + Search Query + Analytics Mode
   const filteredAppliances = appliances.filter((appliance) => {
@@ -141,13 +186,82 @@ export default function DashboardPage() {
     return true;
   });
 
-  // Toggle appliance status
-  const handleToggle = async (id, currentStatus) => {
+  // Toggle appliance status with optimistic updates, server sync, error reversion & 3s polling pause
+  // Toggle appliance status with optimistic updates, server sync, error reversion & 3s polling pause
+  const handleToggleAppliance = (applianceId, currentStatus) => {
+    console.log('[FRONTEND TOGGLE CLICKED]', applianceId);
+
+    const targetAppliance = appliances.find((a) => (a._id === applianceId || a.id === applianceId));
+    const effectiveCurrentStatus = currentStatus !== undefined ? currentStatus : Boolean(targetAppliance?.status);
+    const isTurningOn = !effectiveCurrentStatus;
+
+    // Pause background polling briefly for 3 seconds to prevent race conditions
+    pausePollingUntilRef.current = Date.now() + 3000;
+    isTogglingRef.current = true;
+    setIsToggling(true);
+
+    // 1. Optimistically update UI state immediately
     setAppliances((prev) =>
-      prev.map((a) => (a._id === id ? { ...a, status: !currentStatus } : a))
+      prev.map((a) => (a._id === applianceId || a.id === applianceId ? { ...a, status: isTurningOn } : a))
     );
-    await toggleApplianceStatus(id, currentStatus);
+
+    // 2. Dispatch PATCH /api/appliances/${applianceId}/toggle request via configured api Axios instance
+    api.patch(`/appliances/${applianceId}/toggle`, { status: isTurningOn })
+      .then((res) => {
+        console.log('[TOGGLE SUCCESS RESPONSE]', res.data);
+        if (res.data && res.data.data) {
+          setAppliances((prev) =>
+            prev.map((a) => (a._id === applianceId || a.id === applianceId ? { ...a, ...res.data.data } : a))
+          );
+        }
+
+        // Handle proactive safety alert notification check
+        if (isTurningOn && targetAppliance) {
+          const ratedPower = Number(targetAppliance.powerUsage || targetAppliance.ratedPower || 0);
+          const isHighDraw = ratedPower >= 1000;
+          const currentActiveTotal = appliances
+            .filter((a) => a.status && a._id !== applianceId && a.id !== applianceId)
+            .reduce((sum, a) => sum + (Number(a.powerUsage || a.ratedPower) || 0), 0);
+          const newTotalLoad = currentActiveTotal + ratedPower;
+          const isOverload = newTotalLoad >= 3000;
+
+          if (isHighDraw || isOverload || res.data?.alertTriggered) {
+            if (alertTimeoutRef.current) clearTimeout(alertTimeoutRef.current);
+            setProactiveAlert({
+              applianceName: targetAppliance.name,
+              ratedPower,
+              totalLoadKw: (newTotalLoad / 1000).toFixed(2),
+              isHighDraw,
+              isOverload,
+            });
+
+            alertTimeoutRef.current = setTimeout(() => {
+              setProactiveAlert(null);
+            }, 6500);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('[TOGGLE API ERROR]', err.response?.data || err.message);
+
+        // 4. On failure, revert specific appliance state and display error toast
+        setAppliances((prev) =>
+          prev.map((a) => (a._id === applianceId || a.id === applianceId ? { ...a, status: effectiveCurrentStatus } : a))
+        );
+
+        if (errorToastTimeoutRef.current) clearTimeout(errorToastTimeoutRef.current);
+        setErrorToast(`Failed to update ${targetAppliance?.name || 'appliance'}. Reverting state.`);
+        errorToastTimeoutRef.current = setTimeout(() => {
+          setErrorToast(null);
+        }, 4000);
+      })
+      .finally(() => {
+        isTogglingRef.current = false;
+        setIsToggling(false);
+      });
   };
+
+  const handleToggle = handleToggleAppliance;
 
   // Intensity slider adjustments
   const handleIntensityChange = (id, intensity) => {
@@ -183,9 +297,159 @@ export default function DashboardPage() {
           isOnline={isBackendOnline}
         />
 
-        {/* 2. Main Frosted Glassmorphism Content Area */}
+        {/* 2. Main SaaS Minimalist Content Area */}
         <main className="vision-main" role="main">
-          {/* Top Room Navigation Bar with Z-Index 100 Stacking Context */}
+          {/* Error Toast Notification Banner */}
+          {errorToast && (
+            <div
+              role="alert"
+              className="error-toast-banner"
+              style={{
+                margin: '0.85rem 1rem 0',
+                padding: '0.75rem 1.15rem',
+                borderRadius: '8px',
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FECACA',
+                boxShadow: '0 4px 12px rgba(220, 38, 38, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                zIndex: 100,
+                animation: 'fadeIn 0.25s ease-in-out',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: '6px',
+                    backgroundColor: '#FEE2E2',
+                    border: '1px solid #FCA5A5',
+                    color: '#DC2626',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <AlertTriangle size={18} strokeWidth={2.4} />
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#991B1B' }}>
+                    {errorToast}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setErrorToast(null)}
+                title="Dismiss error notification"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#991B1B',
+                  cursor: 'pointer',
+                  padding: '0.35rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '4px',
+                }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+          )}
+
+          {/* Proactive Safety & Energy Alert Notification Banner */}
+          {proactiveAlert && (
+            <div
+              role="alert"
+              className="proactive-alert-banner"
+              style={{
+                margin: '0.85rem 1rem 0',
+                padding: '0.75rem 1.15rem',
+                borderRadius: '8px',
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FECACA',
+                boxShadow: '0 4px 12px rgba(220, 38, 38, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                zIndex: 100,
+                animation: 'fadeIn 0.25s ease-in-out',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: '6px',
+                    backgroundColor: '#FEE2E2',
+                    border: '1px solid #FCA5A5',
+                    color: '#DC2626',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <ShieldAlert size={18} strokeWidth={2.4} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 800, color: '#991B1B', letterSpacing: '-0.01em' }}>
+                      Proactive Alert Dispatched to User Email
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        padding: '0.12rem 0.5rem',
+                        borderRadius: '9999px',
+                        backgroundColor: '#FFFFFF',
+                        color: '#DC2626',
+                        border: '1px solid #FECACA',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                      }}
+                    >
+                      <MailCheck size={11} strokeWidth={2.5} /> Email Sent
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.775rem', fontWeight: 500, color: '#7F1D1D', marginTop: '0.15rem', marginBottom: 0 }}>
+                    High-draw device <strong>{proactiveAlert.applianceName}</strong> ({proactiveAlert.ratedPower} W) active &bull; Total facility load: <strong>{proactiveAlert.totalLoadKw} kW</strong>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setProactiveAlert(null)}
+                title="Dismiss alert banner"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#991B1B',
+                  cursor: 'pointer',
+                  padding: '0.35rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '4px',
+                }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+          )}
+
+          {/* Top Room Navigation Bar */}
           <TopRoomBar
             selectedRoom={selectedRoom}
             onSelectRoom={setSelectedRoom}
@@ -227,7 +491,6 @@ export default function DashboardPage() {
                       fontWeight: 800,
                       color: '#0F172A',
                       letterSpacing: '-0.025em',
-                      textShadow: '0 1px 1px rgba(255, 255, 255, 0.6)',
                     }}
                   >
                     {activeNavTab === 'analytics'
@@ -236,7 +499,7 @@ export default function DashboardPage() {
                       ? 'All Active Devices'
                       : `${selectedRoom.toUpperCase()} APPLIANCES`}
                   </h2>
-                  <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1E293B', marginTop: '0.1rem' }}>
+                  <p style={{ fontSize: '0.825rem', fontWeight: 500, color: '#334155', marginTop: '0.15rem' }}>
                     {filteredAppliances.length} smart devices monitored in real time
                   </p>
                 </div>
@@ -249,9 +512,9 @@ export default function DashboardPage() {
                         fontWeight: 700,
                         padding: '0.25rem 0.65rem',
                         borderRadius: '9999px',
-                        background: 'rgba(37, 99, 235, 0.15)',
-                        border: '1px solid rgba(37, 99, 235, 0.35)',
-                        color: '#1D4ED8',
+                        background: '#EFF6FF',
+                        border: '1px solid #BFDBFE',
+                        color: '#2563EB',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '0.3rem',
@@ -264,7 +527,7 @@ export default function DashboardPage() {
                     type="button"
                     onClick={loadData}
                     className="frosted-icon-btn"
-                    style={{ width: 36, height: 36, borderRadius: '10px' }}
+                    style={{ width: 36, height: 36, borderRadius: '6px' }}
                     title="Refresh device statuses"
                   >
                     <RefreshCw size={15} className={isLoading ? 'spin' : ''} />
@@ -274,33 +537,36 @@ export default function DashboardPage() {
 
               {filteredAppliances.length === 0 ? (
                 <div
-                  className="glass-card"
+                  className="card"
                   style={{
                     textAlign: 'center',
                     padding: '3.5rem 1.5rem',
-                    borderRadius: '20px',
+                    borderRadius: '8px',
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #E2E8F0',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
                   }}
                 >
                   <div
                     style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: '16px',
-                      background: 'rgba(255, 255, 255, 0.7)',
+                      width: 44,
+                      height: 44,
+                      borderRadius: '8px',
+                      background: '#F1F5F9',
                       color: '#0F172A',
+                      border: '1px solid #E2E8F0',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       margin: '0 auto 1rem',
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
                     }}
                   >
-                    <SlidersHorizontal size={22} />
+                    <SlidersHorizontal size={20} />
                   </div>
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', marginBottom: '0.35rem' }}>
                     No matching smart appliances
                   </h3>
-                  <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1E293B', maxWidth: '380px', margin: '0 auto 1.25rem' }}>
+                  <p style={{ fontSize: '0.85rem', fontWeight: 500, color: '#334155', maxWidth: '380px', margin: '0 auto 1.25rem' }}>
                     No devices found matching &quot;{searchQuery || selectedRoom}&quot;. Reset your filters or register a new appliance.
                   </p>
                   <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'center' }}>
@@ -312,7 +578,7 @@ export default function DashboardPage() {
                         setActiveNavTab('dashboard');
                       }}
                       className="frosted-icon-btn"
-                      style={{ width: 'auto', padding: '0.5rem 1.15rem', borderRadius: '12px', fontSize: '0.825rem', fontWeight: 700 }}
+                      style={{ width: 'auto', padding: '0.45rem 1rem', borderRadius: '6px', fontSize: '0.825rem', fontWeight: 600 }}
                     >
                       Reset Filters
                     </button>
@@ -332,7 +598,7 @@ export default function DashboardPage() {
                     <ApplianceCard
                       key={appliance._id}
                       appliance={appliance}
-                      onToggle={handleToggle}
+                      onToggle={handleToggleAppliance}
                       onDelete={handleDelete}
                       onIntensityChange={handleIntensityChange}
                     />
@@ -376,3 +642,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

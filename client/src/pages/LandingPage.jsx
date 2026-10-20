@@ -1,16 +1,36 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Zap, Shield, Sliders, Activity, Cpu, Layers, BarChart3, Sparkles } from 'lucide-react';
 import controlhubImg from '../assets/controlhub.png';
 
 export default function LandingPage() {
+  const navigate = useNavigate();
+
+  const handleLiveDashboardClick = (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    const isAuthenticated = !!(token || user);
+
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login', {
+        state: {
+          from: '/dashboard',
+          message: 'Please sign in to access the Live Dashboard.',
+        },
+      });
+    }
+  };
+
   return (
     <div className="landing-page-wrapper">
       {/* Full-Bleed Hero Section with controlhub.png Background & Gradient Overlay */}
       <section
         className="hero-section"
         style={{
-          backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.85)), url(${controlhubImg})`,
+          backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.85)), url(${controlhubImg})`,
         }}
       >
         <div className="hero-content">
@@ -32,16 +52,22 @@ export default function LandingPage() {
 
           {/* CTAs */}
           <div className="hero-actions">
-            <Link to="/register" className="btn btn-primary btn-lg">
+            <Link to="/register" className="btn btn-primary btn-lg" title="Register an account">
               <span>Get Started</span>
               <ArrowRight size={16} strokeWidth={2.4} />
             </Link>
-            <Link to="/login" className="btn btn-hero-secondary btn-lg">
+            <Link to="/login" className="btn btn-hero-secondary btn-lg" title="Sign in to ControlHub">
               <span>Sign In</span>
             </Link>
-            <Link to="/dashboard" className="btn btn-hero-secondary btn-lg">
+            <button
+              type="button"
+              onClick={handleLiveDashboardClick}
+              className="btn btn-hero-secondary btn-lg"
+              title="Access Live Dashboard"
+              style={{ cursor: 'pointer' }}
+            >
               <span>Live Dashboard</span>
-            </Link>
+            </button>
           </div>
         </div>
       </section>

@@ -1,24 +1,35 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import connectDB from './config/db.js';
 import applianceRoutes from './routes/applianceRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import { startTelemetrySimulator } from './services/telemetrySimulator.js';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables with fallback path resolution
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Connect to MongoDB
-connectDB();
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), 'server/.env') });
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+
+// Connect to MongoDB and start telemetry simulator service
+connectDB().then(() => {
+  startTelemetrySimulator();
+});
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: '*', // Allow frontend development requests
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-email', 'X-User-Email'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 }));
 app.use(express.json());
 

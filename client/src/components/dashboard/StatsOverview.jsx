@@ -24,15 +24,15 @@ export default function StatsOverview({
   return (
     <section className="top-metric-ribbon" aria-label="Live System Telemetry">
       {/* Card 1: Real-time Power Consumption (kW) */}
-      <div className="metric-glass-tile">
+      <div className="card stat-card metric-glass-tile">
         <div className="metric-tile-header">
           <span className="metric-tile-label">Power Consumption</span>
           <div
             className="metric-tile-icon"
             style={{
-              background: 'rgba(37, 99, 235, 0.2)',
-              borderColor: 'rgba(37, 99, 235, 0.45)',
-              color: '#1D4ED8',
+              background: '#EFF6FF',
+              borderColor: '#BFDBFE',
+              color: '#2563EB',
             }}
           >
             <Zap size={17} strokeWidth={2.6} />
@@ -40,7 +40,7 @@ export default function StatsOverview({
         </div>
         <div>
           <div className="metric-tile-value">
-            {formattedPowerKw} <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1E293B' }}>kW</span>
+            {formattedPowerKw} <span style={{ fontSize: '1.05rem', fontWeight: 600, color: '#475569' }}>kW</span>
           </div>
           <div className="metric-tile-sub">
             <span
@@ -50,24 +50,23 @@ export default function StatsOverview({
                 borderRadius: '50%',
                 backgroundColor: '#10B981',
                 display: 'inline-block',
-                boxShadow: '0 0 8px #10B981',
               }}
             />
-            <span style={{ color: '#1E293B', fontWeight: 600 }}>Instantaneous total draw</span>
+            <span style={{ color: '#334155', fontWeight: 500 }}>Instantaneous total draw</span>
           </div>
         </div>
       </div>
 
       {/* Card 2: Active Devices */}
-      <div className="metric-glass-tile">
+      <div className="card stat-card metric-glass-tile">
         <div className="metric-tile-header">
           <span className="metric-tile-label">Active Devices</span>
           <div
             className="metric-tile-icon"
             style={{
-              background: 'rgba(16, 185, 129, 0.2)',
-              borderColor: 'rgba(16, 185, 129, 0.45)',
-              color: '#047857',
+              background: '#ECFDF5',
+              borderColor: '#A7F3D0',
+              color: '#059669',
             }}
           >
             <Cpu size={17} strokeWidth={2.6} />
@@ -76,12 +75,12 @@ export default function StatsOverview({
         <div>
           <div className="metric-tile-value">
             {activeDevices}{' '}
-            <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1E293B' }}>
+            <span style={{ fontSize: '1.05rem', fontWeight: 600, color: '#475569' }}>
               / {totalDevices} On
             </span>
           </div>
           <div className="metric-tile-sub">
-            <span style={{ color: '#1E293B', fontWeight: 600 }}>
+            <span style={{ color: '#334155', fontWeight: 500 }}>
               {totalDevices > 0
                 ? `${Math.round((activeDevices / totalDevices) * 100)}% active load ratio`
                 : 'No registered devices'}
@@ -91,15 +90,15 @@ export default function StatsOverview({
       </div>
 
       {/* Card 3: Live Gateway Status */}
-      <div className="metric-glass-tile">
+      <div className="card stat-card metric-glass-tile">
         <div className="metric-tile-header">
           <span className="metric-tile-label">Live Status</span>
           <div
             className="metric-tile-icon"
             style={{
-              background: isOnline ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-              borderColor: isOnline ? 'rgba(16, 185, 129, 0.45)' : 'rgba(245, 158, 11, 0.45)',
-              color: isOnline ? '#047857' : '#B45309',
+              background: isOnline ? '#ECFDF5' : '#FEF3C7',
+              borderColor: isOnline ? '#A7F3D0' : '#FDE68A',
+              color: isOnline ? '#059669' : '#D97706',
             }}
           >
             <Activity size={17} strokeWidth={2.6} />
@@ -117,17 +116,16 @@ export default function StatsOverview({
           >
             <span
               style={{
-                width: 9,
-                height: 9,
+                width: 8,
+                height: 8,
                 borderRadius: '50%',
                 backgroundColor: isOnline ? '#10B981' : '#F59E0B',
-                boxShadow: isOnline ? '0 0 10px #10B981' : '0 0 10px #F59E0B',
               }}
             />
             {isOnline ? 'Online & Synced' : 'Local Standby'}
           </div>
           <div className="metric-tile-sub" style={{ justifyContent: 'space-between' }}>
-            <span style={{ color: '#1E293B', fontWeight: 600 }}>Low Latency Telemetry</span>
+            <span style={{ color: '#334155', fontWeight: 500 }}>Low Latency Telemetry</span>
             {onSync && (
               <button
                 type="button"
@@ -135,7 +133,7 @@ export default function StatsOverview({
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#1D4ED8',
+                  color: '#2563EB',
                   fontSize: '0.75rem',
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -153,15 +151,15 @@ export default function StatsOverview({
       </div>
 
       {/* Card 4: Active Zones */}
-      <div className="metric-glass-tile">
+      <div className="card stat-card metric-glass-tile">
         <div className="metric-tile-header">
           <span className="metric-tile-label">Active Zones</span>
           <div
             className="metric-tile-icon"
             style={{
-              background: 'rgba(147, 51, 234, 0.2)',
-              borderColor: 'rgba(147, 51, 234, 0.45)',
-              color: '#7E22CE',
+              background: '#F5F3FF',
+              borderColor: '#DDD6FE',
+              color: '#7C3AED',
             }}
           >
             <Layers size={17} strokeWidth={2.6} />
@@ -170,12 +168,12 @@ export default function StatsOverview({
         <div>
           <div className="metric-tile-value">
             {activeRoomsCount}{' '}
-            <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1E293B' }}>
+            <span style={{ fontSize: '1.05rem', fontWeight: 600, color: '#475569' }}>
               / {totalRoomsCount} Zones
             </span>
           </div>
           <div className="metric-tile-sub">
-            <span style={{ color: '#1E293B', fontWeight: 600 }}>Powered living spaces</span>
+            <span style={{ color: '#334155', fontWeight: 500 }}>Powered living spaces</span>
           </div>
         </div>
       </div>
