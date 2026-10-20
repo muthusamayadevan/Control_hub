@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://control-hub-hkie.onrender.com/api';
 
 // Create configured Axios instance
 export const api = axios.create({
@@ -23,7 +23,7 @@ api.interceptors.request.use(
       if (user?.email) {
         config.headers['X-User-Email'] = user.email;
       }
-    } catch {}
+    } catch { }
     return config;
   },
   (error) => Promise.reject(error)
@@ -149,7 +149,7 @@ export const toggleApplianceStatus = async (id, currentStatus) => {
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       userEmail = user?.email;
-    } catch {}
+    } catch { }
 
     const res = await api.patch(`/appliances/${id}/toggle`, {
       status: !currentStatus,
